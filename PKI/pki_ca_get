@@ -1,0 +1,146 @@
+#!/bin/bash
+#################
+## DESCRIPTION ##
+#################
+# Scripts downloads CRL and CRT files from CA IIS CDP 
+# and put it into the folder of external web server (local)
+# Author: A.Nesterov
+# Date: 23.07.2013
+
+##################################
+## Default variables definition ##
+##################################
+#
+# Save date execution to STDERR. STDERR is saved to LOG from cron
+datetm=`date +%F" "%T`
+
+# Set parameters to null values
+SRC=""
+TRG=""
+EXC=""
+FLS=""
+LOG=""
+PDST=""
+PLGS=""
+
+CFG="false-cfg"
+DEF="false-def"
+ST="false"
+
+## end default variables ##
+
+# script usage
+#IFS=""
+USAGE='pki_get ver. 1.0, network crl, crt files retriever.
+Usage: pki_ca_get [OPTION];
+Options:
+  -s	source web server of crt, crl files location;
+  -t 	target folder for crt, crl files;
+  -e	utility used to download crt, crl files;
+  -f	list of crt,crl files (with extension) separated by commas;
+  -o 	log file location;
+  -f	flag for target folder;
+  -l 	flag for log file location;
+  -c 	config file;
+  -d 	use default options;
+  -h	print this help;
+  -v 	display the version of script and exit.
+Example: ./pki_ca_get -s casrv1.test.loc -c wget -f CertEnroll -a "CA(0-1),CA(1),CA(1-0)" -e "CA(1)+,CA(1),CA.CA+"'
+
+VER="pki_ca_get 1.0
+Copyright (c) 2013 A.Nesterov"
+## end variables ##
+
+#####################
+## Read Parameters ##
+#####################
+
+while getopts s:t:e:f:o:n:l:c:dv? prm
+do 
+	case $prm in
+		s) SRC=$OPTARG; ST="true";;
+		t) TRG=$OPTARG;;
+		e) EXC=$OPTARG;;
+		f) FLS=$OPTARG; FLSARR=(); FLSARR=$(echo $FLS | tr "," "\n");;
+		o) LOG=$OPTARG;;
+		n) PDST=$OPTARG;;
+		l) PLGS=$OPTARG;;
+		c) CFG=$OPTARG;;
+		d) DEF="true";;
+		v) echo $VER; exit 2;;
+		?) echo $USAGE;	exit 2;;
+		esac
+done
+shift `expr $OPTIND - 1`
+
+## Load defaul parameters if def option "-d" is set
+if [ $DEF = "true" ]; then
+{
+ST="true"
+#echo $DEF	
+# source server for download crls, crts
+# (-s option of script)
+SRC="http://ca-server.test.local/pki"
+
+# target folder for crt, crl files
+# (-t option)
+TRG='/var/www/pki'
+
+# download utility
+# (-e option)
+EXC='wget'
+
+# lists of crl, crt for download
+# (-f option)
+FLSARR=('PKI_RTCA.crl' 'PKI_SBCA01.crl' 'PKI_SBCA01+.crl' 'PKI_RTCA.crt' 'PKI_SBCA01.crt')
+
+# log file location
+# (-o option)
+LOG='/var/log/cdpget.log'
+
+# flag target folder
+# (-n option)
+PDST='O'
+
+# flag for log file destination
+# (-l option)
+PLGS='a'
+}
+fi
+
+#echo $CFG
+## Check the config file exist in parameters
+if [ $CFG != "false-cfg" ]; then
+	{
+	ST="true"
+	#echo $CFG
+	. $CFG
+	}
+fi
+
+#################
+## Downloading ##
+#################
+
+for e in ${FLSARR[@]}
+do
+	ERROR1=$( $EXC "$SRC/$e" -$PDST "$TRG/$e" -$PLGS $LOG 2>&1 >/dev/null )
+	if [ $? -ne "0" ]; then
+	{
+		echo "--$datetm-- ERROR script execution: $ERROR1" >>$LOG
+		exit 2
+	}
+	fi
+done
+
+if [ $ST = "false" ]; then
+	{
+	echo $USAGE
+	exit 2	
+	}
+fi
+
+OUTS="--$datetm-- Downloaded files: ${FLSARR[@]}"
+echo $OUTS
+echo $OUTS>>$LOG
+## End Script ##
