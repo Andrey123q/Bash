@@ -4,6 +4,7 @@
 #################
 # Scripts downloads CRL and CRT files from CA IIS CDP 
 # and put it into the folder of external web server (local)
+# Script is saved to @daily cron of svc_account
 # Author: A.Nesterov
 # Date: 23.07.2013
 
@@ -92,7 +93,7 @@ EXC='wget'
 
 # lists of crl, crt for download
 # (-f option)
-FLSARR=('PKI_RTCA.crl' 'PKI_SBCA01.crl' 'PKI_SBCA01+.crl' 'PKI_RTCA.crt' 'PKI_SBCA01.crt')
+FLSARR=('RTCA.crl' 'SBCA.crl' 'SBCA+.crl' 'RTCA.crt' 'SBCA.crt')
 
 # log file location
 # (-o option)
